@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import type { AnalysisResult, AnalysisError } from "@/lib/types";
+import type { AnalysisResult } from "@/lib/types";
 
 interface UploadFormProps {
   onAnalysisComplete: (result: AnalysisResult) => void;
@@ -28,7 +28,14 @@ export function UploadForm({ onAnalysisComplete, onError }: UploadFormProps) {
     };
   }, []);
 
-  const handleFile = (selectedFile: File) => {
+  const handleFileSelect = useCallback(() => {
+    inputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
     if (selectedFile.type !== "application/pdf") {
       onError("PDF 파일만 업로드 가능합니다.", "validation");
       return;
@@ -39,24 +46,34 @@ export function UploadForm({ onAnalysisComplete, onError }: UploadFormProps) {
     }
     setFile(selectedFile);
     onError("");
-  };
+  }, [onError]);
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0]);
+    const droppedFile = e.dataTransfer.files?.[0];
+    if (droppedFile) {
+      if (droppedFile.type !== "application/pdf") {
+        onError("PDF 파일만 업로드 가능합니다.", "validation");
+        return;
+      }
+      if (droppedFile.size > 10 * 1024 * 1024) {
+        onError("파일이 너무 큽니다. 10MB 이하의 PDF만 업로드 가능합니다.", "validation");
+        return;
+      }
+      setFile(droppedFile);
+      onError("");
     }
-  };
+  }, [onError]);
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragActive(true);
-  };
+  }, []);
 
-  const handleDragLeave = () => {
+  const handleDragLeave = useCallback(() => {
     setDragActive(false);
-  };
+  }, []);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +138,7 @@ export function UploadForm({ onAnalysisComplete, onError }: UploadFormProps) {
     }
   }, [file, isLoading, retryCountdown, onError, onAnalysisComplete]);
 
-  const removeFile = () => {
+  const removeFile = useCallback(() => {
     if (countdownRef.current) {
       clearInterval(countdownRef.current);
       countdownRef.current = null;
@@ -131,33 +148,33 @@ export function UploadForm({ onAnalysisComplete, onError }: UploadFormProps) {
     if (inputRef.current) {
       inputRef.current.value = "";
     }
-  };
+  }, []);
 
-  const isDisabled = !file || isLoading || retryCountdown !== null;
+  const isLoadingOrWaiting = isLoading || retryCountdown !== null;
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-md">
+    <div className="w-full max-w-md">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
       <div
-        className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
+        className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
           dragActive
             ? "border-blue-500 bg-blue-50"
-            : isDisabled
+            : isLoadingOrWaiting
             ? "border-gray-200 bg-gray-50"
-            : "border-gray-300 hover:border-gray-400"
+            : "border-gray-300 hover:border-gray-400 hover:bg-gray-50 cursor-pointer"
         }`}
-        onDrop={handleDrop}
+        onClick={!isLoadingOrWaiting ? handleFileSelect : undefined}
+        onDrop={!isLoadingOrWaiting ? handleDrop : undefined}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
       >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="application/pdf"
-          onChange={(e) => e.target.files && handleFile(e.target.files[0])}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          disabled={isDisabled}
-        />
-
         {file ? (
           <div className="space-y-3">
             <div className="w-12 h-12 mx-auto bg-green-100 rounded-full flex items-center justify-center">
@@ -222,65 +239,67 @@ export function UploadForm({ onAnalysisComplete, onError }: UploadFormProps) {
         )}
       </div>
 
-      <button
-        type="submit"
-        disabled={isDisabled}
-        className={`w-full mt-6 py-3 px-6 rounded-xl font-semibold text-white transition-colors ${
-          isDisabled
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
-        }`}
-      >
-        {retryCountdown !== null ? (
-          <span className="flex items-center justify-center gap-2">
-            <svg
-              className="animate-spin h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-            {retryCountdown}초 후 재시도 가능
-          </span>
-        ) : isLoading ? (
-          <span className="flex items-center justify-center gap-2">
-            <svg
-              className="animate-spin h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-            분석 중...
-          </span>
-        ) : (
-          "분석 시작"
-        )}
-      </button>
-    </form>
+      <form onSubmit={handleSubmit}>
+        <button
+          type="submit"
+          disabled={!file || isLoading || retryCountdown !== null}
+          className={`w-full mt-6 py-3 px-6 rounded-xl font-semibold text-white transition-colors ${
+            !file || isLoading || retryCountdown !== null
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800"
+          }`}
+        >
+          {retryCountdown !== null ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg
+                className="animate-spin h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              {retryCountdown}초 후 재시도 가능
+            </span>
+          ) : isLoading ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg
+                className="animate-spin h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              분석 중...
+            </span>
+          ) : (
+            "분석 시작"
+          )}
+        </button>
+      </form>
+    </div>
   );
 }

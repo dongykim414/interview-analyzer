@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { getAnalysisPrompt } from "./prompts";
 import type { AnalysisResult, AnalysisError } from "./types";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.1-flash-lite-preview";
 
 function getGeminiClient(): GoogleGenAI {
   return new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
