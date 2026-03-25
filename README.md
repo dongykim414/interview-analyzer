@@ -8,7 +8,6 @@
 - Google Gemini API를 통한 자소서 분석 (무료 티어 지원)
 - 면접 예상 질문 생성 (5개 카테고리, 각 15개 질문)
 - 한국어 UI
-- 비밀번호 보호
 
 ## Tech Stack
 
@@ -40,24 +39,11 @@ cp .env.example .env.local
 `.env.local` 파일을 열고 환경 변수를 설정합니다:
 
 ```
-APP_PASSWORD=your-secure-password
 GEMINI_API_KEY=your-api-key-here
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
-### 4. 비밀번호 설정
-
-앱에 접근하려면 비밀번호가 필요합니다. `APP_PASSWORD` 환경 변수를 설정하세요.
-
-### 5. 로컬 실행
-
-기본 모델은 `gemini-2.5-flash`입니다. 다른 모델을 사용하려면 `.env.local`에서 변경하세요:
-
-- `gemini-2.5-flash` - 무료 티어 안정적 (권장)
-- `gemini-1.5-flash` - 대용량 파일 지원
-- `gemini-2.0-flash` - 빠른 응답 (할당량 제한 있을 수 있음)
-
-### 5. 로컬 실행
+### 4. 로컬 실행
 
 ```bash
 npm run dev
@@ -79,7 +65,6 @@ npm run dev
 
 Vercel 프로젝트 Settings → Environment Variables에서 다음을 설정합니다:
 
-- `APP_PASSWORD`: 앱 접근 비밀번호
 - `GEMINI_API_KEY`: Gemini API 키
 - `GEMINI_MODEL`: (선택) Gemini 모델 이름
 
